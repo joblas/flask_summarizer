@@ -17,6 +17,7 @@ Smart Summarizer is a Flask-based web application that provides concise summarie
 1. Clone the repository:
 
 git clone https://github.com/joblas/flask_summarizer.git
+
 cd smart-summarizer
 
 
