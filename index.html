@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Ass Summarizer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Smart Ass Summarizer</h1>
+        <div class="input-container">
+            <input type="text" id="inputURL" placeholder="Enter URL to summarize..."/><br>
+            <label for="maxLength">Max Length:</label>
+            <input type="number" id="maxLength" value="300" min="100" max="1000"><br>
+            <label for="minLength">Min Length:</label>
+            <input type="number" id="minLength" value="100" min="50" max="500"><br>
+            <button onclick="summarizeURL()">Summarize</button>
+            <button onclick="clearSummary()">Clear Summary</button>
+        </div>
+        <h2>Summary</h2>
+        <div id="summary" class="summary-box"></div>
+    </div>
+
+    <script>
+        async function summarizeURL() {
+            const url = document.getElementById('inputURL').value;
+            const maxLength = document.getElementById('maxLength').value;
+            const minLength = document.getElementById('minLength').value;
+            const summaryElement = document.getElementById('summary');
+            
+            try {
+                const response = await fetch('/summarize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url, max_length: maxLength, min_length: minLength })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'An error occurred');
+                }
+                
+                summaryElement.innerText = data[0].summary_text;
+            } catch (error) {
+                console.error('Error:', error);
+                summaryElement.innerText = `Error: ${error.message}`;
+            }
+        }
+
+        function clearSummary() {
+            document.getElementById('summary').innerText = '';
+            document.getElementById('inputURL').value = '';
+            document.getElementById('maxLength').value = '300';
+            document.getElementById('minLength').value = '100';
+        }
+    </script>
+</body>
+</html>
