@@ -1,5 +1,6 @@
 A Youtube and Web Summarizer using URLs
 # Smart Summarizer
+![Smart Summarizer](https://github.com/joblas/flask_summarizer/blob/main/Screenshot%20Smart%20Summarizer.png)
 
 Smart Summarizer is a Flask-based web application that provides concise summaries of web pages and YouTube videos. It uses advanced natural language processing techniques to generate accurate and relevant summaries.
 
