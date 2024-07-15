@@ -5,37 +5,73 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Ass Summarizer</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='favicon/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon/favicon-16x16.png') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon/favicon.ico') }}" type="image/x-icon">
+    <link rel="manifest" href="{{ url_for('static', filename='favicon/site.webmanifest') }}">
+    <link rel="mask-icon" href="{{ url_for('static', filename='favicon/safari-pinned-tab.svg') }}" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="theme-color" content="#ffffff">
 </head>
 <body>
     <div class="container">
         <h1>Smart Ass Summarizer</h1>
         <div class="input-container">
-            <input type="text" id="inputURL" placeholder="Enter URL to summarize..."/><br>
-            <label for="maxLength">Max Length:</label>
-            <input type="number" id="maxLength" value="300" min="100" max="1000"><br>
-            <label for="minLength">Min Length:</label>
-            <input type="number" id="minLength" value="100" min="50" max="500"><br>
-            <button onclick="summarizeURL()">Summarize</button>
-            <button onclick="clearSummary()">Clear Summary</button>
+            <div class="input-group">
+                <input type="text" id="inputURL" placeholder="Enter URL to summarize..."/>
+                <button onclick="summarizeURL()">Summarize URL</button>
+            </div>
+            <div class="input-group">
+                <input type="file" id="inputFile" accept=".txt"/>
+                <button onclick="summarizeFile()">Summarize File</button>
+            </div>
+            <div class="input-group">
+                <label for="model">Model:</label>
+                <select id="model" name="model">
+                    <option value="bart">BART</option>
+                    <option value="t5">T5</option>
+                    <option value="pegasus">Pegasus</option>
+                </select>
+            </div>
+            <div class="button-group">
+                <button onclick="saveSummary()">Save Summary</button>
+                <button onclick="getHistory()">Show History</button>
+            </div>
         </div>
         <h2>Summary</h2>
+        <div id="loading" class="loading-spinner" style="display: none;">
+            <div class="robot-head">
+                <div class="antenna"></div>
+                <div class="eyes">
+                    <div class="eye"></div>
+                    <div class="eye"></div>
+                </div>
+            </div>
+            <p>Generating summary...</p>
+        </div>
         <div id="summary" class="summary-box"></div>
+        <h2>History</h2>
+        <div id="history" class="history-box"></div>
     </div>
 
     <script>
         async function summarizeURL() {
             const url = document.getElementById('inputURL').value;
-            const maxLength = document.getElementById('maxLength').value;
-            const minLength = document.getElementById('minLength').value;
+            const model = document.getElementById('model').value;
             const summaryElement = document.getElementById('summary');
+            const loadingElement = document.getElementById('loading');
             
             try {
+                loadingElement.style.display = 'flex';
+                summaryElement.innerText = '';
+                
                 const response = await fetch('/summarize', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ url, max_length: maxLength, min_length: minLength })
+                    body: JSON.stringify({ url, model })
                 });
                 
                 const data = await response.json();
@@ -48,14 +84,102 @@
             } catch (error) {
                 console.error('Error:', error);
                 summaryElement.innerText = `Error: ${error.message}`;
+            } finally {
+                loadingElement.style.display = 'none';
+            }
+        }
+
+        async function summarizeFile() {
+            const file = document.getElementById('inputFile').files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('model', document.getElementById('model').value);
+            
+            const summaryElement = document.getElementById('summary');
+            const loadingElement = document.getElementById('loading');
+            
+            try {
+                loadingElement.style.display = 'flex';
+                summaryElement.innerText = '';
+                
+                const response = await fetch('/summarize_file', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'An error occurred');
+                }
+                
+                summaryElement.innerText = data[0].summary_text;
+            } catch (error) {
+                console.error('Error:', error);
+                summaryElement.innerText = `Error: ${error.message}`;
+            } finally {
+                loadingElement.style.display = 'none';
+            }
+        }
+
+        async function saveSummary() {
+            const url = document.getElementById('inputURL').value;
+            const summary = document.getElementById('summary').innerText;
+            
+            try {
+                const response = await fetch('/save_summary', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url, summary })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'An error occurred');
+                }
+                
+                alert(data.message);
+            } catch (error) {
+                console.error('Error:', error);
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        async function getHistory() {
+            try {
+                const response = await fetch('/history');
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error('An error occurred');
+                }
+                
+                const historyHtml = data.map(item => {
+                    const date = new Date(item.created_at);
+                    const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+                    return `
+                        <div class="history-item">
+                            <p><strong>URL:</strong> ${item.url}</p>
+                            <p><strong>Summary:</strong> ${item.summary}</p>
+                            <p><strong>Created at:</strong> ${localDate.toLocaleString()}</p>
+                        </div>
+                    `;
+                }).join('');
+                
+                document.getElementById('history').innerHTML = historyHtml;
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('history').innerText = `Error: ${error.message}`;
             }
         }
 
         function clearSummary() {
             document.getElementById('summary').innerText = '';
             document.getElementById('inputURL').value = '';
-            document.getElementById('maxLength').value = '300';
-            document.getElementById('minLength').value = '100';
+            document.getElementById('inputFile').value = '';
         }
     </script>
 </body>
