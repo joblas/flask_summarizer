@@ -32,6 +32,8 @@ source venv/bin/activate
 
 3. Install the required packages:
 
+pip install flask transformers torch flask_sqlalchemy youtube_transcript_api beautifulsoup4 flask_cors bert-extractive-summarizer sentencepiece
+
 pip install -r requirements.txt
 
 
